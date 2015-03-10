@@ -29,6 +29,8 @@ When finished, the subroutine returns three variables:
  - The average variable values (average locations in each dimension) for each cluster, as a PDL matrix (clusters x variables).
  - An array with an index vector for each cluster, which contains the indices of the cluster members.
 
+It is easy to adapt this algorithm to perform single linkage or full linkage clustering, rather than UPGMA. This would also require less memory.
+
 Probably, further improvements can be made to speed and/or memory use. This is a rather quick-and-dirty solution. Using sparse data structures and/or a disk-based distance matrix, it should be possible to cluster much larger datasets before running out of memory.
 
 The clustering algorithm described above works well, but when clustering more than a few thousand points, you quickly run into memory problems. The algorithm requires at least two distance matrices, the size of which is the number of points squared, times the number of bytes needed for each value. So for 100,000 points you would need a distance matrix with 10 billion entries, which would require over 37 Gb when stored as a block of 4-byte floating point values.
