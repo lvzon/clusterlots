@@ -2,84 +2,14 @@
 
 use PDL;  
 
-# =========================================================================
-
-# The clustering algorithm works great, but clustering a 90000 point field
-# is an almost intractable problem (the distance matrix alone will be 30 Gb!)
-# So we have to think of another way to do it.
-# Perhaps do it in 2 steps:
-# - Subsample the original field (select 300 indices or so at random)
-# - Create clusters, calculate the cluster averages
-# - Assign all 90000 points to a cluster
-#	- Create a new membership vector
-#	- For each point, calculate the distance to all clusters
-#	- Assign to the cluster with the smallest distance
-#	- Export the new membership vector
-
-sub cluster_species {
-	
-	my ($properties, $threshold) = @_;
-	
-	my $numprop = $properties->getdim(1);
-	my $veclen = $properties->getdim(0);
-	
-	$sample_idx = floor(random(300) * $veclen);
-	
-	print $sample_idx;
-	
-	$sample_values = $properties->dice($sample_idx);
-	
-	print $sample_values;
-	
-	my ($numclust, $sample_clust_mean, @sample_clust) = cluster_matrix($sample_values, $threshold);
-	
-	print "$numclust clusters made, with mean values: " . $sample_clust_mean . "\n";
-	
-	# For each point, calculate the distance to all clusters
-	# Assign each point to the cluster with the smallest distance
-	
-	my $cluster = zeroes($veclen);
-	
-	for (my $ind = 0 ; $ind < $veclen - 1 ; $ind++) {
-		
-		my $distance = $sample_clust_mean->copy;
-		
-		$distance -= $properties->slice("$ind,:");
-		$distance *= $distance;
-		$distance = sqrt(sumover($distance->xchg(0,1)));
-		
-		$cluster->slice("$ind") .= minimum_ind($distance);
-	}
-	
-	
-#	TODO: If smallest distance exceeds threshold, repeat clustering
-#	with a bigger sample
-	
-	
-	# Export the new membership vector and mean values
-	
-	my $mean_properties = zeroes($numclust, $numprop);
-	my @outclusters;
-	
-	for (my $clusteridx = 0 ; $clusteridx < $numclust ; $clusteridx++) {
-		my $clustermap = which($cluster == $clusteridx);
-		$outclusters[$clusteridx] = $clustermap;
-		
-		$mean_properties->slice("($clusteridx)") .= average($properties->dice($clustermap));
-	}
-	
-	return ($numclust, $mean_properties, @outclusters);
-}
-
-
 sub cluster_matrix {
 	
 	my ($properties, $threshold) = @_;
 	
-	# properties: a matrix consisting of vectors that contain organism properties
+	# properties: a matrix consisting of vectors that contain variables (values along each dimension)
 	# threshold: minimum distance between clusters
 	
-	my $numprop = $properties->getdim(1);		# Check this
+	my $numprop = $properties->getdim(1);
 	my $veclen = $properties->getdim(0);
 	
 	# Some settings to control the behaviour of the algorithm
@@ -327,4 +257,73 @@ sub cluster_matrix {
 	print "Mean properties: " . $mean_properties . "\n";
 	
 	return ($outclusteridx, $mean_properties, @finalclusters);
+}
+
+
+# The clustering algorithm implemented above works well, but when clustering more than a few 
+# thousand points, you quickly run into memory problems. The algorithm requires at least two
+# distance matrices, the size of which is the number of points squared, times the number of
+# bytes needed for each value. So for 100,000 points you would need a distance matrix with
+# 10 billion entries, which would require over 37 Gb when stored as 4-byte floating point values.
+# So if we have many values, we use a 2-step approach: 
+# - Subsample the original set of points (select a few hundred indices or so at random)
+# - Create clusters, calculate the cluster averages
+# - Assign all points in the original set to a cluster
+#	- Create a new membership vector
+#	- For each point, calculate the distance to all clusters
+#	- Assign to the cluster with the smallest distance
+#	- Export the new membership vector
+
+sub cluster_sampled {
+	
+	my ($properties, $threshold, $sample_size) = @_;
+	
+	my $numprop = $properties->getdim(1);
+	my $veclen = $properties->getdim(0);
+	
+	$sample_idx = floor(random($sample_size) * $veclen);
+	
+	print $sample_idx;
+	
+	$sample_values = $properties->dice($sample_idx);
+	
+	print $sample_values;
+	
+	my ($numclust, $sample_clust_mean, @sample_clust) = cluster_matrix($sample_values, $threshold);
+	
+	print "$numclust clusters made, with mean values: " . $sample_clust_mean . "\n";
+	
+	# For each point, calculate the distance to all clusters
+	# Assign each point to the cluster with the smallest distance
+	
+	my $cluster = zeroes($veclen);
+	
+	for (my $ind = 0 ; $ind < $veclen - 1 ; $ind++) {
+		
+		my $distance = $sample_clust_mean->copy;
+		
+		$distance -= $properties->slice("$ind,:");
+		$distance *= $distance;
+		$distance = sqrt(sumover($distance->xchg(0,1)));
+		
+		$cluster->slice("$ind") .= minimum_ind($distance);
+	}
+	
+	
+        # TODO: If smallest distance exceeds threshold, repeat clustering
+        # with a bigger sample?
+	
+	# Export the new membership vector and mean values
+	
+	my $mean_properties = zeroes($numclust, $numprop);
+	my @outclusters;
+	
+	for (my $clusteridx = 0 ; $clusteridx < $numclust ; $clusteridx++) {
+		my $clustermap = which($cluster == $clusteridx);
+		$outclusters[$clusteridx] = $clustermap;
+		
+		$mean_properties->slice("($clusteridx)") .= average($properties->dice($clustermap));
+	}
+	
+	return ($numclust, $mean_properties, @outclusters);
 }
