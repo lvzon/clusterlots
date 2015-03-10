@@ -43,3 +43,12 @@ So if we have many values, we use a 2-step approach, implemented in cluster_samp
 	- Export the new membership vector.
 
 This subroutine takes the same arguments and returns the same variables as cluster_matrix(), but requires one additional argument: the size of the random sample.
+
+Note that this code has not been thoroughly tested, and I have not extensively checked the algorithm for correctness.
+If you want to cluster small datasets (up to a few thousand points), you're probably better off using more established packages such as Gnu R, Matlab or the open-source C Clustering Library by Michiel de Hoon et al.:
+
+ - Clustering in R: http://levien.zonnetjes.net/?q=clustering-r
+ - Cluster 3.0 and the C clustering library: http://bonsai.ims.u-tokyo.ac.jp/~mdehoon/software/cluster/
+ - The Algorithm::Cluster module for Perl: http://search.cpan.org/~mdehoon/Algorithm-Cluster-1.39/perl/Cluster.pm
+ - Pycluster for Python: http://bonsai.ims.u-tokyo.ac.jp/~mdehoon/software/cluster/software.htm#pycluster
+
