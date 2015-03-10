@@ -44,7 +44,7 @@ So if we have many values, we use a 2-step approach, implemented in cluster_samp
 
 This subroutine takes the same arguments and returns the same variables as cluster_matrix(), but requires one additional argument: the size of the random sample.
 
-There are some problems with this method, notably that outliers in this second step will be assigned to the closest cluster, rather than forming a new cluster. This implementation will therefore bias outliers in the sample, but hide outliers in the rest of the dataset. This still needs to be fixed.
+There are some problems with this method, notably that outliers in this second step will be assigned to the closest cluster, rather than forming a new cluster. This implementation will therefore bias outliers in the sample, but hide outliers in the rest of the dataset. This still needs to be fixed. Also, it would be nice to have adaptive selection of the sample size, and checking of the results.
 
 Note that this code has not been thoroughly tested, and I have not extensively checked the algorithm for correctness.
 If you want to cluster small datasets (up to a few thousand points), you're probably better off using more established packages such as Gnu R, Matlab or the open-source C Clustering Library by Michiel de Hoon et al.:
