@@ -1,10 +1,14 @@
 # clusterlots
 
-This is a fast perl/PDL implementation of UPGMA data clustering for very large datasets. The problem is that existing clustering packages have difficulty handling datasets with more than a few thousand data points. Especially the distance matrices tend to become a problem. For example, clustering one field of a 300x300 grid-based simulation (90,000 data points) would require a (non-sparse) distance matrix of 8.1 billion entries (90000^2). This would use over 30 Gb of memory when stored as a block of 4-byte floating point values.
+Copyleft 2007, Levien van Zon (levien at zonnetjes dot net)
+ - http://levien.zonnetjes.net
+ - https://github.com/lvzon/clusterlots
 
-I needed to cluster a lot of such datasets, so to make this manageable I implemented a simple but fast UPGMA clustering algorithm in PDL (the Perl Data Language). To conserve memory, it doesn't store a full hierarchical clustering tree, but rather it partitions the data into clusters based on a pre-defined minimum distance between the cluster centroids. Moreover, to handle large data sets it can compute the clusters based on a random sample of the data points, and then assign all other points to the nearest cluster. This is fairly fast and seems to work very well in practice.
+This is a fast perl/PDL implementation of UPGMA data clustering for very large datasets. The problem is that existing clustering packages have difficulty handling datasets with more than a few thousand data points. Both memory use and speed rapidly become problematic, especially when doing hierarchial clustering (which has the advantage that you don't need to predefine the number of clusters, as is needed in K-means clustering).
 
-The clustering subroutine has the following parameters:
+I needed to cluster a lot of large datasets, so to make this manageable I implemented a simple but fast UPGMA (Unweighted Pair Group Method with Arithmetic Mean) hierarchial clustering algorithm in PDL (the Perl Data Language). To conserve memory, it doesn't store a full hierarchical clustering tree, but rather it partitions the data into clusters based on a pre-defined minimum distance between the cluster centroids. This still requires a lot of memory for the distance matrix however, so to handle large data sets it can compute the clusters based on a random sample of the data points, and then assign all other points to the nearest cluster. This is fairly fast and seems to work very well in practice.
+
+The main clustering subroutine, cluster_matrix(), has the following parameters:
    -  an input-matrix, which is essentially a concatenated set of vectors. The length of these vectors is the number of points to be clustered, and there is one vector for each variable or dimension.
    -  a threshold, indicating the minimum (euclidian) distance that is required between separate cluster centroids.
    
@@ -25,3 +29,17 @@ When finished, the subroutine returns three variables:
  - The average variable values (average locations in each dimension) for each cluster, as a PDL matrix (clusters x variables).
  - An array with an index vector for each cluster, which contains the indices of the cluster members.
 
+Probably, further improvements can be made to speed and/or memory use. This is a rather quick-and-dirty solution. Using sparse data structures and/or a disk-based distance matrix, it should be possible to cluster much larger datasets before running out of memory.
+
+The clustering algorithm described above works well, but when clustering more than a few thousand points, you quickly run into memory problems. The algorithm requires at least two distance matrices, the size of which is the number of points squared, times the number of bytes needed for each value. So for 100,000 points you would need a distance matrix with 10 billion entries, which would require over 37 Gb when stored as a block of 4-byte floating point values.
+So if we have many values, we use a 2-step approach, implemented in cluster_sampled():
+
+ - Subsample the original set of points (select a few hundred to a few thousand indices or so, at random).
+ - Create clusters from this subset, calculate the cluster averages.
+ - Assign all points in the original set to one of the clusters:
+	- Create a new membership vector.
+	- For each point, calculate the distance to all clusters.
+	- Assign it to the cluster with the smallest distance.
+	- Export the new membership vector.
+
+This subroutine takes the same arguments and returns the same variables as cluster_matrix(), but requires one additional argument: the size of the random sample.
