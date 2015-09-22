@@ -56,3 +56,10 @@ If you want to cluster small datasets (up to a few thousand points), you're prob
  - The Algorithm::Cluster module for Perl: http://search.cpan.org/~mdehoon/Algorithm-Cluster-1.39/perl/Cluster.pm
  - Pycluster for Python: http://bonsai.ims.u-tokyo.ac.jp/~mdehoon/software/cluster/software.htm#pycluster
 
+
+### TODO
+
+ - Rewrite the routines in Python.
+ - Assign outliers to a new cluster in the second stage of sampled clustering.
+ - Adaptively determine sample size.
+ - Perform sanity checks and output some statistics on the results.
